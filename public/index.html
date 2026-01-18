@@ -307,7 +307,13 @@
     }
 
     function updateUI(data) {
-      const messages = data.sms_messages || [];
+      // sms_messages can be an object (keyed by phone number) or array
+      const rawMessages = data.sms_messages || {};
+      const messages = Array.isArray(rawMessages)
+        ? rawMessages
+        : Object.entries(rawMessages).flatMap(([phoneNumber, msgs]) =>
+            (Array.isArray(msgs) ? msgs : [msgs]).map(msg => ({ ...msg, PhoneNumber: phoneNumber }))
+          );
       const messageList = document.getElementById("messageList");
       const totalMessages = document.getElementById("totalMessages");
       const uniqueRecipients = document.getElementById("uniqueRecipients");
