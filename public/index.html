@@ -177,6 +177,15 @@
       word-break: break-word;
     }
 
+    .message-body a {
+      color: #2563eb;
+      text-decoration: underline;
+    }
+
+    .message-body a:hover {
+      color: #1d4ed8;
+    }
+
     .message-meta {
       margin-top: 8px;
       font-size: 0.75rem;
@@ -312,10 +321,11 @@
     function updateUI(data) {
       // sms_messages can be an object (keyed by phone number) or array
       const rawMessages = data.sms_messages || {};
+      const dataRegion = data.region || region || "N/A";
       const messages = Array.isArray(rawMessages)
         ? rawMessages
         : Object.entries(rawMessages).flatMap(([phoneNumber, msgs]) =>
-            (Array.isArray(msgs) ? msgs : [msgs]).map(msg => ({ ...msg, PhoneNumber: phoneNumber }))
+            (Array.isArray(msgs) ? msgs : [msgs]).map(msg => ({ ...msg, PhoneNumber: phoneNumber, _region: dataRegion }))
           );
       const messageList = document.getElementById("messageList");
       const totalMessages = document.getElementById("totalMessages");
@@ -352,10 +362,10 @@
               <span class="phone-number">${escapeHtml(msg.PhoneNumber || "Unknown")}</span>
               <span class="timestamp">${timestamp}</span>
             </div>
-            <div class="message-body">${escapeHtml(msg.Message || "")}</div>
+            <div class="message-body">${linkify(msg.Message || "")}</div>
             <div class="message-meta">
-              Region: ${escapeHtml(msg.region || "N/A")} |
-              Account: ${escapeHtml(msg.accountId || "N/A")}
+              Region: ${escapeHtml(msg._region || "N/A")} |
+              Message ID: ${escapeHtml(msg.MessageId ? msg.MessageId.substring(0, 8) + "..." : "N/A")}
             </div>
           </div>
         `;
@@ -405,6 +415,12 @@
       const div = document.createElement("div");
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    function linkify(text) {
+      const escaped = escapeHtml(text);
+      const urlPattern = /(https?:\/\/[^\s]+)/g;
+      return escaped.replace(urlPattern, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
     }
 
     init();
