@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LocalStack SMS Viewer</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.875rem;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #4ade80;
+    }
+
+    .status-dot.error {
+      background-color: #f87171;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .btn-danger {
+      background-color: #ef4444;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background-color: #dc2626;
+    }
+
+    .btn-secondary {
+      background-color: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-card h3 {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1f2937;
+    }
+
+    .messages-container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .messages-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e5e7eb;
+      font-weight: 600;
+    }
+
+    .message-list {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .message-item {
+      padding: 16px 20px;
+      border-bottom: 1px solid #f3f4f6;
+      transition: background-color 0.2s;
+    }
+
+    .message-item:hover {
+      background-color: #f9fafb;
+    }
+
+    .message-item:last-child {
+      border-bottom: none;
+    }
+
+    .message-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .phone-number {
+      font-weight: 600;
+      color: #1f2937;
+      font-size: 1rem;
+    }
+
+    .timestamp {
+      font-size: 0.75rem;
+      color: #9ca3af;
+    }
+
+    .message-body {
+      background-color: #f3f4f6;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .message-meta {
+      margin-top: 8px;
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+
+    .empty-state {
+      padding: 60px 20px;
+      text-align: center;
+      color: #9ca3af;
+    }
+
+    .empty-state svg {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .empty-state h3 {
+      font-size: 1.125rem;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    .error-banner {
+      background-color: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .error-banner.show {
+      display: block;
+    }
+
+    @media (max-width: 640px) {
+      header {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+      }
+
+      .header-actions {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>LocalStack SMS Viewer</h1>
+      <div class="header-actions">
+        <div class="status">
+          <div class="status-dot" id="statusDot"></div>
+          <span id="statusText">Connected</span>
+        </div>
+        <button class="btn btn-secondary" onclick="refresh()">Refresh</button>
+        <button class="btn btn-danger" onclick="clearMessages()">Clear All</button>
+      </div>
+    </header>
+
+    <div class="error-banner" id="errorBanner"></div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <h3>Total Messages</h3>
+        <div class="value" id="totalMessages">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>Unique Recipients</h3>
+        <div class="value" id="uniqueRecipients">0</div>
+      </div>
+    </div>
+
+    <div class="messages-container">
+      <div class="messages-header">Messages</div>
+      <div class="message-list" id="messageList">
+        <div class="empty-state">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+          </svg>
+          <h3>No messages yet</h3>
+          <p>SMS messages sent via LocalStack will appear here</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let pollInterval = 5000;
+    let pollTimer = null;
+
+    async function init() {
+      try {
+        const configRes = await fetch("/api/config");
+        const config = await configRes.json();
+        pollInterval = config.pollInterval;
+      } catch (e) {
+        console.error("Failed to load config:", e);
+      }
+      await refresh();
+      startPolling();
+    }
+
+    function startPolling() {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(refresh, pollInterval);
+    }
+
+    async function refresh() {
+      try {
+        const response = await fetch("/api/sms-messages");
+        if (!response.ok) throw new Error("Failed to fetch messages");
+
+        const data = await response.json();
+        updateUI(data);
+        setStatus(true);
+      } catch (error) {
+        console.error("Error:", error);
+        setStatus(false, error.message);
+      }
+    }
+
+    function updateUI(data) {
+      const messages = data.sms_messages || [];
+      const messageList = document.getElementById("messageList");
+      const totalMessages = document.getElementById("totalMessages");
+      const uniqueRecipients = document.getElementById("uniqueRecipients");
+
+      totalMessages.textContent = messages.length;
+
+      const uniquePhones = new Set(messages.map((m) => m.PhoneNumber));
+      uniqueRecipients.textContent = uniquePhones.size;
+
+      if (messages.length === 0) {
+        messageList.innerHTML = `
+          <div class="empty-state">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+            <h3>No messages yet</h3>
+            <p>SMS messages sent via LocalStack will appear here</p>
+          </div>
+        `;
+        return;
+      }
+
+      const sortedMessages = [...messages].reverse();
+
+      messageList.innerHTML = sortedMessages
+        .map((msg) => {
+          const timestamp = msg.Timestamp
+            ? new Date(msg.Timestamp).toLocaleString()
+            : "Unknown";
+          return `
+          <div class="message-item">
+            <div class="message-header">
+              <span class="phone-number">${escapeHtml(msg.PhoneNumber || "Unknown")}</span>
+              <span class="timestamp">${timestamp}</span>
+            </div>
+            <div class="message-body">${escapeHtml(msg.Message || "")}</div>
+            <div class="message-meta">
+              Region: ${escapeHtml(msg.region || "N/A")} |
+              Account: ${escapeHtml(msg.accountId || "N/A")}
+            </div>
+          </div>
+        `;
+        })
+        .join("");
+    }
+
+    async function clearMessages() {
+      if (!confirm("Are you sure you want to clear all SMS messages?")) return;
+
+      try {
+        const response = await fetch("/api/sms-messages", { method: "DELETE" });
+        if (!response.ok) throw new Error("Failed to clear messages");
+        await refresh();
+      } catch (error) {
+        console.error("Error clearing messages:", error);
+        showError("Failed to clear messages: " + error.message);
+      }
+    }
+
+    function setStatus(connected, errorMsg) {
+      const statusDot = document.getElementById("statusDot");
+      const statusText = document.getElementById("statusText");
+      const errorBanner = document.getElementById("errorBanner");
+
+      if (connected) {
+        statusDot.classList.remove("error");
+        statusText.textContent = "Connected";
+        errorBanner.classList.remove("show");
+      } else {
+        statusDot.classList.add("error");
+        statusText.textContent = "Disconnected";
+        if (errorMsg) {
+          showError(errorMsg);
+        }
+      }
+    }
+
+    function showError(message) {
+      const errorBanner = document.getElementById("errorBanner");
+      errorBanner.textContent = message;
+      errorBanner.classList.add("show");
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    init();
+  </script>
+</body>
+</html>

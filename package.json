@@ -1,0 +1,21 @@
+{
+  "name": "localstack-sns-sms-viewer",
+  "version": "1.0.0",
+  "description": "A simple web viewer for SMS messages sent via LocalStack SNS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "localstack",
+    "sns",
+    "sms",
+    "viewer",
+    "aws"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}
