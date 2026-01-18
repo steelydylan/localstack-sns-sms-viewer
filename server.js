@@ -7,6 +7,7 @@ const LOCALSTACK_HOST =
   process.env.LOCALSTACK_HOST || "http://localhost:4566";
 const PORT = process.env.PORT || 3006;
 const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL || "5000", 10);
+const AWS_REGION = process.env.AWS_REGION || "";
 
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -14,12 +15,15 @@ app.get("/api/config", (req, res) => {
   res.json({
     localstackHost: LOCALSTACK_HOST,
     pollInterval: POLL_INTERVAL,
+    region: AWS_REGION,
   });
 });
 
 app.get("/api/sms-messages", async (req, res) => {
   try {
-    const url = `${LOCALSTACK_HOST}/_aws/sns/sms-messages`;
+    const region = req.query.region || AWS_REGION;
+    const queryParams = region ? `?region=${region}` : "";
+    const url = `${LOCALSTACK_HOST}/_aws/sns/sms-messages${queryParams}`;
     const response = await fetch(url);
 
     if (!response.ok) {
@@ -36,7 +40,9 @@ app.get("/api/sms-messages", async (req, res) => {
 
 app.delete("/api/sms-messages", async (req, res) => {
   try {
-    const url = `${LOCALSTACK_HOST}/_aws/sns/sms-messages`;
+    const region = req.query.region || AWS_REGION;
+    const queryParams = region ? `?region=${region}` : "";
+    const url = `${LOCALSTACK_HOST}/_aws/sns/sms-messages${queryParams}`;
     const response = await fetch(url, { method: "DELETE" });
 
     if (!response.ok) {

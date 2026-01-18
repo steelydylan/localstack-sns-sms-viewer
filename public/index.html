@@ -274,12 +274,14 @@
   <script>
     let pollInterval = 5000;
     let pollTimer = null;
+    let region = "";
 
     async function init() {
       try {
         const configRes = await fetch("/api/config");
         const config = await configRes.json();
         pollInterval = config.pollInterval;
+        region = config.region || "";
       } catch (e) {
         console.error("Failed to load config:", e);
       }
@@ -294,7 +296,8 @@
 
     async function refresh() {
       try {
-        const response = await fetch("/api/sms-messages");
+        const queryParams = region ? `?region=${region}` : "";
+        const response = await fetch(`/api/sms-messages${queryParams}`);
         if (!response.ok) throw new Error("Failed to fetch messages");
 
         const data = await response.json();
@@ -364,7 +367,8 @@
       if (!confirm("Are you sure you want to clear all SMS messages?")) return;
 
       try {
-        const response = await fetch("/api/sms-messages", { method: "DELETE" });
+        const queryParams = region ? `?region=${region}` : "";
+        const response = await fetch(`/api/sms-messages${queryParams}`, { method: "DELETE" });
         if (!response.ok) throw new Error("Failed to clear messages");
         await refresh();
       } catch (error) {
